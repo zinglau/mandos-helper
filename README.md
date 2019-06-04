@@ -1,5 +1,5 @@
 # mandos-helper
-Helper scripts that enable remote processing (e.g. on mobile phone) of luks password requests received by Mandos servers.
+Helper scripts that enable remote processing (e.g. on mobile phone) of [luks](https://en.wikipedia.org/wiki/Linux_Unified_Key_Setup) (Linux Unified Key Setup) password requests received by [Mandos server](https://www.recompile.se/mandos).
 
 #### Demo of approving mandos client through [Authy OneTouch](https://authy.com/blog/authy-onetouch-modern-authentication-for-any-application/) authentication
 
