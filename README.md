@@ -12,9 +12,13 @@ Helper scripts that enable remote processing (e.g. on mobile phone) of [luks](ht
 2. Modify settings.example.py with relevant settings and save as **settings.py**.
 3. To run manually for testing or debugging purpose, just run **mandos-helper**.
 4. To run as a systemd service, modify `ExecStart` in **mandos-helper.service** with correct file location and command line arguments, and then:
-	cp mandos-helper.service /etc/systemd/system/
-	systemctl enable mandos-helper
-	systemctl start mandos-helper
+~~~~
+cp mandos-helper.service /etc/systemd/system/
+systemctl enable mandos-helper
+systemctl start mandos-helper
+~~~~
+
+***
 
 #### Demo of approving mandos client through [Authy OneTouch](https://authy.com/blog/authy-onetouch-modern-authentication-for-any-application/) authentication
 
