@@ -1,0 +1,12 @@
+[Unit]
+Description=Helper for Mandos server
+After=mandos.service
+Requisite=mandos.service
+
+[Service]
+# Modify this with correct file location and necessary command line arguments
+ExecStart=/opt/mandos-helper/mandos-helper
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
