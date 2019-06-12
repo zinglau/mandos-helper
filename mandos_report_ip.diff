@@ -1,0 +1,23 @@
+--- mandos	2019-05-13 20:39:45.747738757 +0800
++++ mandos_ip	2019-05-13 20:40:11.718923821 +0800
+@@ -1911,8 +1911,8 @@ class ClientDBus(Client, DBusObjectWithP
+         pass
+ 
+     # NeedApproval - signal
+-    @dbus.service.signal(_interface, signature="tb")
+-    def NeedApproval(self, timeout, default):
++    @dbus.service.signal(_interface, signature="tbs")
++    def NeedApproval(self, timeout, default, address):
+         "D-Bus signal"
+         return self.need_approval()
+ 
+@@ -2274,7 +2274,8 @@ class ClientHandler(socketserver.BaseReq
+                             # Emit D-Bus signal
+                             client.NeedApproval(
+                                 client.approval_delay.total_seconds()
+-                                * 1000, client.approved_by_default)
++                                * 1000, client.approved_by_default,
++                                str(self.client_address))
+                     else:
+                         logger.warning("Client %s was not approved",
+                                        client.name)
