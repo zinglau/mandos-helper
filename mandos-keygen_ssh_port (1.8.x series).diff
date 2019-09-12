@@ -1,0 +1,78 @@
+--- /usr/sbin/mandos-keygen	2019-09-04 17:22:40.000000000 -0400
++++ /usr/sbin/mandos-keygen.sshport	2019-09-11 05:41:47.621762879 -0400
+@@ -45,8 +45,8 @@ if [ ! -d "$KEYDIR" ]; then
+ fi
+ 
+ # Parse options
+-TEMP=`getopt --options vhpF:d:t:l:s:L:n:e:c:x:T:fS \
+-    --longoptions version,help,password,passfile:,dir:,type:,length:,subtype:,sublength:,name:,email:,comment:,expire:,tls-keytype:,force,no-ssh \
++TEMP=`getopt --options vhpF:d:t:l:s:L:n:e:c:x:T:fS:P: \
++    --longoptions version,help,password,passfile:,dir:,type:,length:,subtype:,sublength:,name:,email:,comment:,expire:,tls-keytype:,force,no-ssh,ssh-port: \
+     --name "$0" -- "$@"`
+ 
+ help(){
+@@ -92,6 +92,8 @@ Password creation options:
+                         the key directory.  All options other than
+                         --dir and --name are ignored.
+   -S, --no-ssh          Don't get SSH key or set "checker" option.
++  -P PORT, --ssh-port PORT
++                        Use non-default port for ssh-keyscan.
+ EOF
+ }
+ 
+@@ -112,6 +114,7 @@ while :; do
+ 	-T|--tls-keytype) TLS_KEYTYPE="$2"; shift 2;;
+ 	-f|--force) FORCE=yes; shift;;
+ 	-S|--no-ssh) SSH=no; shift;;
++	-P|--ssh-port) SSHPORT="$2"; shift 2;;
+ 	-v|--version) echo "$0 $VERSION"; exit;;
+ 	-h|--help) help; exit;;
+ 	--) shift; break;;
+@@ -193,6 +196,16 @@ fi
+ if [ "$mode" = password ]; then
+     # Create temporary encrypted password file
+     SECFILE="`mktemp -t mandos-keygen-secfile.XXXXXXXXXX`"
++    if [ -n "$SSHPORT" ]; then
++        if `echo $SSHPORT | grep -q "^[0-9]\+$"` && [ "$SSHPORT" -ge 1 -a "$SSHPORT" -le 65535 ]; then
++            ssh_port="$SSHPORT"
++        else
++            echo "Invalid port number" >&2
++            exit 1
++        fi
++    else
++        ssh_port=22
++    fi
+ fi
+ 
+ # Create temporary key ring directory
+@@ -333,7 +346,7 @@ if [ "$mode" = password ]; then
+     if [ $SSH -eq 1 ]; then
+ 	for ssh_keytype in ecdsa-sha2-nistp256 ed25519 rsa; do
+ 	    set +e
+-	    ssh_fingerprint="`ssh-keyscan -t $ssh_keytype localhost 2>/dev/null`"
++	    ssh_fingerprint="`ssh-keyscan -t $ssh_keytype -p $ssh_port localhost 2>/dev/null`"
+ 	    err=$?
+ 	    set -e
+ 	    if [ $err -ne 0 ]; then
+@@ -341,7 +354,7 @@ if [ "$mode" = password ]; then
+ 		continue
+ 	    fi
+ 	    if [ -n "$ssh_fingerprint" ]; then
+-		ssh_fingerprint="${ssh_fingerprint#localhost }"
++		ssh_fingerprint=`echo "$ssh_fingerprint" | cut -f2- -d" "`
+ 		break
+ 	    fi
+ 	done
+@@ -434,7 +447,11 @@ if [ "$mode" = password ]; then
+ 	    }
+ 	}' < "$SECFILE"
+     if [ -n "$ssh_fingerprint" ]; then
+-	echo 'checker = ssh-keyscan -t '"$ssh_keytype"' %%(host)s 2>/dev/null | grep --fixed-strings --line-regexp --quiet --regexp=%%(host)s" %(ssh_fingerprint)s"'
++	if [ "$ssh_port" -eq "22" ]; then
++	    echo 'checker = ssh-keyscan -t '"$ssh_keytype"' -p '"$ssh_port"' %%(host)s 2>/dev/null | grep --fixed-strings --line-regexp --quiet --regexp=%%(host)s" %(ssh_fingerprint)s"'
++	else
++	    echo 'checker = ssh-keyscan -t '"$ssh_keytype"' -p '"$ssh_port"' %%(host)s 2>/dev/null | grep --fixed-strings --line-regexp --quiet --regexp=\[%%(host)s\]\:'"$ssh_port"'" %(ssh_fingerprint)s"'
++	fi
+ 	echo "ssh_fingerprint = ${ssh_fingerprint}"
+     fi
+ fi
