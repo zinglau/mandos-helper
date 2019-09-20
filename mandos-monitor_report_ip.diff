@@ -1,0 +1,19 @@
+--- /usr/sbin/mandos-monitor	2019-09-04 17:22:40.000000000 -0400
++++ /usr/sbin/mandos-monitor_ip	2019-09-20 06:55:32.283909744 -0400
+@@ -209,12 +209,12 @@ class MandosClientWidget(urwid.FlowWidge
+         self.logger('Client {} received its secret'
+                     .format(self.properties["Name"]))
+ 
+-    def need_approval(self, timeout, default):
++    def need_approval(self, timeout, default, address):
+         if not default:
+-            message = 'Client {} needs approval within {} seconds'
++            message = 'Client {} from {} needs approval within {} seconds'
+         else:
+-            message = 'Client {} will get its secret in {} seconds'
+-        self.logger(message.format(self.properties["Name"],
++            message = 'Client {} from {} will get its secret in {} seconds'
++        self.logger(message.format(self.properties["Name"], address,
+                                    timeout/1000))
+ 
+     def rejected(self, reason):
