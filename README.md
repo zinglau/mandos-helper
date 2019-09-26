@@ -2,7 +2,7 @@
 Helper scripts that enable remote processing (e.g. on mobile phone) of [luks](https://en.wikipedia.org/wiki/Linux_Unified_Key_Setup) (Linux Unified Key Setup) password requests received by [Mandos server](https://www.recompile.se/mandos).
 
 ### Prerequisites
-- A working installation of Mandos server: Patching of **mandos** script (usually located at /usr/sbin/mandos) with **mandos_report_ip.diff** is required if IP reporting is needed. The helper needs to be installed on the same machine as Mandos server.
+- A working installation of Mandos server: Patching of **mandos** script (usually located at /usr/sbin/) with **mandos_report_ip.diff** is required if IP reporting is needed. The helper needs to be installed on the same machine as Mandos server.
 - Python3
 - For Authy helper: a [Twillo](https://www.twilio.com) account with a registered authy application.
 - For Telegram bot helper: a [Telegram](https://www.telegram.org/) account and a registered bot.
@@ -20,10 +20,7 @@ systemctl start mandos-helper
 
 ***
 
-#### Demo of approving mandos client through [Authy OneTouch](https://authy.com/blog/authy-onetouch-modern-authentication-for-any-application/) authentication
+#### <a href="demo/authy.gif" target="_blank">Click</a> to watch a demo of approving mandos client through [Authy OneTouch](https://authy.com/blog/authy-onetouch-modern-authentication-for-any-application/) authentication
 
-<img src="authy.gif" alt="Demo of authy helper" width="100%"/>
 
-#### Demo of approving mandos client through [Telegram bot](https://core.telegram.org/bots)
-
-<img src="tg.gif" alt="Demo of telegram bot helper" width="100%"/>
+#### <a href="demo/tg.gif" target="_blank">Click</a> to watch a demo of approving mandos client through [Telegram bot](https://core.telegram.org/bots)
