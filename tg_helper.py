@@ -37,6 +37,8 @@ class FilterUsers(BaseFilter):
 class TgHelper(object):
     def __init__(self, bus, busname):
         self.handledSignals = ['NeedApproval']
+        if MANAGE_ENABLE_DISABLE:
+            self.handledSignals.append('PropertyChanged')
         self._clients = {}
         self._filter_users = FilterUsers()
         self._bus = bus
@@ -110,6 +112,21 @@ class TgHelper(object):
         menu.append([InlineKeyboardButton(text='\ud83d\udd19', callback_data='main')])
         func(m, reply_markup=InlineKeyboardMarkup(menu, resize_keyboard=True))
 
+    def _enable_menu(self, signal, path, args, properties, ts):
+        client_info = "{} ({}) on {}".format(str(properties['Name']), str(properties['Host']), MANDOS_SERVER_NAME)
+        enabled = args[1]
+        logger.debug("Status change of {} : {}".format(client_info, 'Enabled' if enabled else 'Disabled'))
+        m = "Client {} has been {} at {} (UTC):\n".format(
+                    client_info, 'ENABLED!' if enabled else 'DISABLED!',
+                                      datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
+        menu = [[InlineKeyboardButton(text='\u2705 Accept', callback_data='I|' + ts + '|' + path),
+                InlineKeyboardButton(text='\u274c Reverse', callback_data='R|' + ts + '|' + path + '|' + str(enabled))]]
+        mes = self._updater.bot.sendMessage(chat_id=TG_USER_ID,
+                                            text=m,
+                                            reply_markup=InlineKeyboardMarkup(menu, resize_keyboard=True)
+                                            )
+        return
+
     def _approve_menu(self, path, args, properties, ts):
         client_address = None
         if len(args) == 3:
@@ -122,7 +139,8 @@ class TgHelper(object):
         m += "Client: {}\n".format(properties['Name'])
         if str(properties['Host']):
             m += 'Host: {}\n'.format(str(properties['Host']))
-        if client_address: m += 'Connecting from: {}\n'.format(str(client_address))
+        if client_address:
+            m += 'Connecting from: {}\n'.format(str(client_address))
         m += 'Default response: {}\n'.format('Approved' if default == 1 else 'Denied')
         m += 'Timeout (seconds): {}\n'.format(str(int(milliseconds_to_expire / 1000)))
         menu = [[InlineKeyboardButton(text='\u2705 Approve', callback_data='a|' + ts + '|' + path),
@@ -141,14 +159,34 @@ class TgHelper(object):
             proxy.Enable()
         self._client_menu(client, update)
 
+    def _client_enable(self, d, update):
+        ts = d.split('|')[1]
+        client = d.split('|')[2]
+        if client not in self._clients or ts != self._clients[client]['PropertyChanged']['timestamp']:
+            update.callback_query.edit_message_text(update.callback_query.message.text + '\n\nOutdated!\n----\n')
+            return
+        m = update.callback_query.message.text + '\n\n'
+        if d[0:1] == 'R':
+            proxy = self._bus.get_object(self._busname, client, follow_name_owner_changes=True)
+            if d.split('|')[3] == '1':
+                proxy.Disable()
+            else:
+                proxy.Enable()
+            m += '\u21b6 Reversed!\n----\n'
+        else:
+            m += '\u2713 Accepted!\n----\n'
+        update.callback_query.edit_message_text(m)
+
     def _client_approve(self, d, update):
         ts = d.split('|')[1]
         client = d.split('|')[2]
-        if client not in self._clients or ts != self._clients[client]['timestamp']:
+        if client not in self._clients or ts != self._clients[client]['NeedApproval']['timestamp']:
             update.callback_query.edit_message_text(update.callback_query.message.text + '\n\nOutdated!\n----\n')
             return
         proxy = self._bus.get_object(self._busname, client, follow_name_owner_changes=True)
         proxy.Approve(d[0:1] == 'a')
+        if d[0:1] == 'd' and DISABLE_IF_DENIED:
+            proxy.Disable()
         m = '\n\n{} at {} (UTC)\n----\n'.format(
                '\u2705 Approved' if d[0:1] == 'a' else '\u274c Denied',
                        datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
@@ -170,6 +208,8 @@ class TgHelper(object):
             self._client_toggle(d, update)
         elif d[0:2] == 'a|' or d[0:2] == 'd|':
             self._client_approve(d, update)
+        elif d[0:2] == 'I|' or d[0:2] == 'R|':
+            self._client_enable(d, update)
 
     def _error(self, update, context):
         logger.warning('Update "%s" caused error "%s"', update, context.error)
@@ -178,10 +218,20 @@ class TgHelper(object):
         logger.debug("Telegram helper starts processing signal: {} on {}".format(signal, path))
         for arg in args:
             logger.debug('            ' + str(arg))
-
-        if signal == 'NeedApproval':
-            ts = str(int(time()))
-            self._clients[path] = {'timestamp': ts}
+        if signal == "PropertyChanged" and args[0] != "Enabled":
+            logger.debug("Ignored")
+            return
+        client = str(path)
+        if client not in self._clients:
+            self._clients[client] = {
+                "PropertyChanged": {"timestamp": 0},
+                "NeedApproval": {"timestamp": 0}
+            }
+        ts = str(int(time()))
+        self._clients[client][signal]['timestamp'] = ts
+        if signal == "PropertyChanged":
+            self._enable_menu(signal, path, args, properties, ts)
+        if signal == "NeedApproval":
             self._approve_menu(path, args, properties, ts)
 
     def stop(self):

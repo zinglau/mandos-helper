@@ -18,7 +18,7 @@
 #
 
 from threading import activeCount, current_thread, Thread
-from polling import poll
+from polling import poll, TimeoutException
 from time import sleep
 
 from settings import *
@@ -32,6 +32,8 @@ logger = logging.getLogger()
 class AuthyHelper(object):
     def __init__(self, bus, busname):
         self.handledSignals = ['NeedApproval']
+        if MANAGE_ENABLE_DISABLE:
+            self.handledSignals.append('PropertyChanged')
         self._authy_api = AuthyApiClient(TWILLO_AUTHY_API_KEY)
         self._clients = {}
 
@@ -58,13 +60,42 @@ class AuthyHelper(object):
         logger.info("Authy helper child thread starts processing signal: {} on {}".format(signal, path))
         for arg in args:
             logger.debug('            ' + str(arg))
+        client = path[9:]
+
+        if signal == "PropertyChanged" and args[0] == "Enabled":
+            client_info = "{} ({}) on {}".format(str(properties['Name']), str(properties['Host']), MANDOS_SERVER_NAME)
+            enabled = args[1]
+            logger.debug("Status change of {} : {}".format(client_info, 'Enabled' if enabled else 'Disabled'))
+            request = self._authy_api.one_touch.send_request(
+                AUTHY_USER_ID,
+                "Client {} has just been {}".format(client_info, 'ENABLED!' if enabled else 'DISABLED!')
+            )
+            if request.ok():
+                uuid = request.get_uuid()
+                try:
+                    status = poll(lambda: self._check_response(uuid, client),
+                                  check_success=lambda s: s != 'continue',
+                                  step=AUTHY_POLL_INTERVAL,
+                                  timeout=30
+                                  )
+                except TimeoutException:
+                    logger.info("Timeout. Doing nothing")
+                    return
+                logger.debug(status)
+                if self._clients[client] == thread_id:
+                    logger.info('Authy helper child thread received request result: ' + status)
+                    if status == 'denied':
+                        proxy.Disable() if enabled else proxy.Enable()
+            else:
+                logger.error(request.errors())
+            return
+
         client_address = None
         if len(args) == 3:
             milliseconds_to_expire, default, client_address = args
         else:
             milliseconds_to_expire, default = args
         seconds_to_expire = int(milliseconds_to_expire / 1000)
-        client = path[9:]
         details = {
                    'Client': str(properties['Name']),
                    'Host': str(properties['Host']),
@@ -94,7 +125,8 @@ class AuthyHelper(object):
                     proxy.Approve(True)
                 elif status == 'denied':
                     proxy.Approve(False)
-                    if AUTHY_DISABLE_IF_DENIED: proxy.Disable()
+                    if DISABLE_IF_DENIED:
+                        proxy.Disable()
         else:
             logger.error(request.errors())
 
@@ -102,6 +134,9 @@ class AuthyHelper(object):
         logger.debug("Authy helper starts processing signal: {} on {}".format(signal, path))
         for arg in args: logger.debug('            ' + str(arg))
         client = path[9:]
+        if signal == "PropertyChanged" and args[0] != "Enabled":
+            logger.debug("Ignored")
+            return
         t = Thread(name=client, target=self._run, args=(signal, path, args, properties, proxy))
         t.setDaemon(True)
         t.start()

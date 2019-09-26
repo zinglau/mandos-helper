@@ -4,6 +4,8 @@
 # Unique name for this Mandos server
 MANDOS_SERVER_NAME = ""
 
+# Whether denied client should also be disabled to avoid further notifications
+DISABLE_IF_DENIED = False
 
 ### BEGIN Authy helper settings
 
@@ -17,9 +19,6 @@ AUTHY_USER_ID = 0
 
 # Polling frequency in seconds
 AUTHY_POLL_INTERVAL = 5
-
-# Whether denied client should also be disabled to avoid further notifications
-AUTHY_DISABLE_IF_DENIED = False
 
 ### END Authy helper settings
 
