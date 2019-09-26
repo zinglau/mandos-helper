@@ -37,14 +37,11 @@ version = "1.0RC1"
 logger = logging.getLogger()
 syslogger = None
 
+
 def initlogger(debug, level=logging.WARNING):
     global syslogger
-    syslogger = (logging.handlers.SysLogHandler(
-        facility=logging.handlers.SysLogHandler.LOG_DAEMON,
-        address="/dev/log"))
-    syslogger.setFormatter(logging.Formatter
-                           ('Mandos-helper [%(process)d]: %(levelname)s:'
-                            ' %(message)s'))
+    syslogger = logging.handlers.SysLogHandler(facility=logging.handlers.SysLogHandler.LOG_DAEMON, address="/dev/log")
+    syslogger.setFormatter(logging.Formatter('Mandos-helper [%(process)d]: %(levelname)s: %(message)s'))
     logger.addHandler(syslogger)
 
     if debug:
@@ -52,9 +49,11 @@ def initlogger(debug, level=logging.WARNING):
         console.setFormatter(logging.Formatter('%(asctime)s %(name)s'
                                                ' [%(process)d]: [%(threadName)s]: '
                                                ' %(levelname)s:'
-                                               ' %(message)s'))
+                                               ' %(message)s')
+                             )
         logger.addHandler(console)
     logger.setLevel(level)
+
 
 class MandosHelper(object):
 
@@ -65,22 +64,24 @@ class MandosHelper(object):
         self._proxy = self._bus.get_object(self._busname, "/", follow_name_owner_changes=True)
         self._helper = helper
         self._bus.add_signal_receiver(self._receiver,
-                                      dbus_interface = self._busname + '.Client',
-                                      signal_name = None,
-                                      message_keyword = 'message',
-                                      byte_arrays = True
-                                     )
+                                      dbus_interface=self._busname + '.Client',
+                                      signal_name=None,
+                                      message_keyword='message',
+                                      byte_arrays=True
+                                      )
 
     def _receiver(self, *args, **kwargs):
         signal = kwargs['message'].get_member()
         path = kwargs['message'].get_path()
         logger.debug("Received signal: {} on {}".format(signal, path))
-        for arg in args: logger.debug('			' + str(arg))
+        for arg in args:
+            logger.debug('			' + str(arg))
         if signal in self._helper.handledSignals:
-            allClients = self._bus.get_object(self._busname, '/', follow_name_owner_changes = True
-                                             ).GetAllClientsWithProperties()
-            proxy = self._bus.get_object(self._busname, path, follow_name_owner_changes = True)
-            self._helper.process(signal, path, args, allClients[path], proxy)
+            all_clients = self._bus.get_object(self._busname, '/', follow_name_owner_changes=True
+                                               ).GetAllClientsWithProperties()
+            proxy = self._bus.get_object(self._busname, path, follow_name_owner_changes=True)
+            self._helper.process(signal, path, args, all_clients[path], proxy)
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -88,14 +89,13 @@ def main():
                         version="%(prog)s {}".format(version),
                         help="show version number and exit")
     parser.add_argument("--debug", action="store_true",
-                        help="Debug mode; run in foreground and log"
-                        " to terminal", default=None)
+                        help="Debug mode; run in foreground and log to terminal", default=None)
     parser.add_argument("--debuglevel", metavar="LEVEL",
                         help="Debug level for stdout output", default='')
     parser.add_argument("--helper",
                         default="authy", metavar="HELPER",
                         help="helper used for handling Mandos server dbus messages, currently supported:"
-                        " authy (Twillo Authy one-touch), tg (Telegram bot)")
+                             " authy (Twillo Authy one-touch), tg (Telegram bot). Default to authy.")
     options = parser.parse_args()
     if options.debug:
         initlogger(options.debug, logging.DEBUG)
@@ -106,8 +106,8 @@ def main():
             level = getattr(logging, options.debuglevel.upper())
             initlogger(options.debug, level)
     helpers = {
-                'authy': getattr(authy_helper, 'authyHelper'),
-                'tg': getattr(tg_helper, 'tgHelper'),
+                'authy': getattr(authy_helper, 'AuthyHelper'),
+                'tg': getattr(tg_helper, 'TgHelper'),
               }
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
     bus = dbus.SystemBus()
@@ -115,7 +115,7 @@ def main():
     busname = 'se.recompile.Mandos'
     helper = helpers[options.helper](bus, busname)
     if options.helper in helpers:
-        mainHelper = MandosHelper(loop, bus, busname, helper)
+        MandosHelper(loop, bus, busname, helper)
         try:
             loop.run()
         except KeyboardInterrupt:
@@ -128,6 +128,7 @@ def main():
             raise
     else:
         logger.error('Helper type {} is not recognized'.format(options.helper))
+
 
 if __name__ == '__main__':
     main()

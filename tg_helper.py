@@ -17,8 +17,6 @@
 # <http://www.gnu.org/licenses/>.
 #
 
-import logging
-logger = logging.getLogger()
 from datetime import datetime
 from time import time
 
@@ -27,24 +25,29 @@ from settings import *
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, BaseFilter
 
+import logging
+logger = logging.getLogger()
+
+
 class FilterUsers(BaseFilter):
     def filter(self, message):
         return message.from_user['id'] != TG_USER_ID
 
-class tgHelper(object):
-    def __init__ (self, bus, busname):
+
+class TgHelper(object):
+    def __init__(self, bus, busname):
         self.handledSignals = ['NeedApproval']
         self._clients = {}
         self._filter_users = FilterUsers()
         self._bus = bus
         self._busname = busname
-        self._updater = Updater(token = TG_TOKEN,
-                                request_kwargs = TG_REQUEST_KWARGS,
-                                workers = TG_WORKERS,
-                                use_context = True
-                               )
+        self._updater = Updater(token=TG_TOKEN,
+                                request_kwargs=TG_REQUEST_KWARGS,
+                                workers=TG_WORKERS,
+                                use_context=True
+                                )
         self._dp = self._updater.dispatcher
-        self._dp.add_handler(MessageHandler(self._filter_users , self._reject))
+        self._dp.add_handler(MessageHandler(self._filter_users, self._reject))
         self._dp.add_handler(CommandHandler("start", self._start))
         self._dp.add_handler(CallbackQueryHandler(self._mandos))
         self._dp.add_error_handler(self._error)
@@ -55,33 +58,37 @@ class tgHelper(object):
         logger.info('Message from unauthorized user {} ({})'.format(user['username'], user['id']))
         self._updater.message.reply_markdown('*Unauthorized user!*')
 
-    def _main_menu(self, update, mode = 'update'):
-       clients = self._bus.get_object(self._busname, '/', follow_name_owner_changes = True
-                                     ).GetAllClientsWithProperties()
-       menu = []
-       for c in clients:
+    def _main_menu(self, update, mode='update'):
+        clients = self._bus.get_object(self._busname, '/', follow_name_owner_changes=True
+                                       ).GetAllClientsWithProperties()
+        menu = []
+        for c in clients:
             name = clients[c]['Name']
             host = ' Host {}, '.format(str(clients[c]['Host'])) if str(clients[c]['Host']) else ' '
             enable = 'Enabled' if clients[c]['Enabled'] else 'Disabled'
             approve = ', Awaiting Approval' if clients[c]['ApprovalPending'] else ''
-            menu.append([InlineKeyboardButton(
-                text = '{}:{}{}{}'.format(name, host, enable, approve), callback_data = str(c))])
+            menu.append([
+                InlineKeyboardButton(text='{}:{}{}{}'.format(name, host, enable, approve), callback_data=str(c))
+                         ])
+        if mode != 'update':
+            func = update.message.reply_markdown
+        else:
+            func = update.callback_query.edit_message_text
 
-       if mode != 'update': func = update.message.reply_markdown
-       else: func = update.callback_query.edit_message_text
+        func('Welcome to Mandos Server bot on {0}!\n{0} is serving these clients:'.format(MANDOS_SERVER_NAME),
+             reply_markup=InlineKeyboardMarkup(menu, resize_keyboard=True)
+             )
 
-       func('Welcome to Mandos Server bot on {0}!\n{0} is serving these clients:'.format(MANDOS_SERVER_NAME),
-            reply_markup = InlineKeyboardMarkup(menu, resize_keyboard=True)
-           )
-
-    def _client_menu(self, client, update, mode = 'update'):
+    def _client_menu(self, client, update, mode='update'):
         logger.debug('Retrieving {} info.'.format(client))
-        clients = self._bus.get_object(self._busname, '/', follow_name_owner_changes = True
+        clients = self._bus.get_object(self._busname, '/', follow_name_owner_changes=True
                                            ).GetAllClientsWithProperties()
         menu = []
 
-        if mode != 'update': func = update.message.reply_markdown
-        else: func = update.callback_query.edit_message_text
+        if mode != 'update':
+            func = update.message.reply_markdown
+        else:
+            func = update.callback_query.edit_message_text
 
         if client not in clients:
             m = '\u2757 ERROR: client not found!\n'
@@ -92,16 +99,16 @@ class tgHelper(object):
                 m += 'Host: {}\n'.format(str(c['Host']))
             if c['Enabled']:
                 m += 'Status: Enabled\n'
-                menu.append([InlineKeyboardButton(text = 'Disable', callback_data = 'D|' + client)])
+                menu.append([InlineKeyboardButton(text='Disable', callback_data='D|' + client)])
             else:
                 m += 'Status: Disabled\n'
-                menu.append([InlineKeyboardButton(text = 'Enable', callback_data = 'E|' + client)])
+                menu.append([InlineKeyboardButton(text='Enable', callback_data='E|' + client)])
             m += 'Approved by default: {}\n'.format('Yes' if c['ApprovedByDefault'] else 'No')
             m += 'Checker: {}\nLatest Checker Success: {} (UTC)\n'.format(
                            c['Checker'],               c['LastCheckedOK'].replace('T', ' ')[0:-7])
             m += 'Current time: {} (UTC)\n'.format(datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
-        menu.append([InlineKeyboardButton(text = '\ud83d\udd19', callback_data = 'main')])
-        func(m, reply_markup = InlineKeyboardMarkup(menu, resize_keyboard=True))
+        menu.append([InlineKeyboardButton(text='\ud83d\udd19', callback_data='main')])
+        func(m, reply_markup=InlineKeyboardMarkup(menu, resize_keyboard=True))
 
     def _approve_menu(self, path, args, properties, ts):
         client_address = None
@@ -118,10 +125,12 @@ class tgHelper(object):
         if client_address: m += 'Connecting from: {}\n'.format(str(client_address))
         m += 'Default response: {}\n'.format('Approved' if default == 1 else 'Denied')
         m += 'Timeout (seconds): {}\n'.format(str(int(milliseconds_to_expire / 1000)))
-        menu = [[InlineKeyboardButton(text = '\u2705 Approve', callback_data = 'a|' + ts + '|' + path),
-                InlineKeyboardButton(text = '\u274c Deny', callback_data = 'd|' + ts + '|' + path )]]
-        mes = self._updater.bot.sendMessage(chat_id = TG_USER_ID, text = m,
-                                            reply_markup = InlineKeyboardMarkup(menu, resize_keyboard=True))
+        menu = [[InlineKeyboardButton(text='\u2705 Approve', callback_data='a|' + ts + '|' + path),
+                InlineKeyboardButton(text='\u274c Deny', callback_data='d|' + ts + '|' + path)]]
+        mes = self._updater.bot.sendMessage(chat_id=TG_USER_ID,
+                                            text=m,
+                                            reply_markup=InlineKeyboardMarkup(menu, resize_keyboard=True)
+                                            )
 
     def _client_toggle(self, d, update):
         client = d[2:]
@@ -142,7 +151,7 @@ class tgHelper(object):
         proxy.Approve(d[0:1] == 'a')
         m = '\n\n{} at {} (UTC)\n----\n'.format(
                '\u2705 Approved' if d[0:1] == 'a' else '\u274c Denied',
-                     datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
+                       datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
         update.callback_query.edit_message_text(update.callback_query.message.text + m)
 
     def _start(self, update, context):
@@ -152,7 +161,7 @@ class tgHelper(object):
 
     def _mandos(self, update, context):
         d = update.callback_query.data
-        print("Telegram helper starts processing query with data: {}".format(d))
+        logger.debug("Telegram helper starts processing query with data: {}".format(d))
         if d == 'main':
             self._main_menu(update)
         elif d[0:9] == '/clients/':
@@ -166,8 +175,9 @@ class tgHelper(object):
         logger.warning('Update "%s" caused error "%s"', update, context.error)
 
     def process(self, signal, path, args, properties, proxy):
-        print("Telegram helper starts processing signal: {} on {}".format(signal, path))
-        for arg in args: logger.debug('            ' + str(arg))
+        logger.debug("Telegram helper starts processing signal: {} on {}".format(signal, path))
+        for arg in args:
+            logger.debug('            ' + str(arg))
 
         if signal == 'NeedApproval':
             ts = str(int(time()))
