@@ -23,10 +23,7 @@ from time import sleep
 
 from settings import *
 
-try:
-    from authy.api import AuthyApiClient
-except ImportError as e:
-    raise SystemExit('Please install python3-pip and run "pip3 install authy" first!')
+from authy.api import AuthyApiClient
 
 import logging
 logger = logging.getLogger()

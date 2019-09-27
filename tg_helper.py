@@ -22,11 +22,8 @@ from time import time
 
 from settings import *
 
-try:
-    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-    from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, BaseFilter
-except ImportError as e:
-    raise SystemExit('Please install python3-pip and run "pip3 install python-telegram-bot" first!')
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, BaseFilter
 
 import logging
 logger = logging.getLogger()
