@@ -29,13 +29,16 @@ import dbus, dbus.exceptions, dbus.mainloop.glib
 from gi.repository import GLib
 
 from settings import *
-import authy_helper
-import tg_helper
 
 version = "1.0RC1"
 
 logger = logging.getLogger()
 syslogger = None
+
+helpers = {
+    'authy': ('authy_helper', 'AuthyHelper'),
+    'tg': ('tg_helper', 'TgHelper'),
+}
 
 
 def initlogger(debug, level=logging.WARNING):
@@ -105,16 +108,15 @@ def main():
         else:
             level = getattr(logging, options.debuglevel.upper())
             initlogger(options.debug, level)
-    helpers = {
-                'authy': getattr(authy_helper, 'AuthyHelper'),
-                'tg': getattr(tg_helper, 'TgHelper'),
-              }
+    global helpers
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
     bus = dbus.SystemBus()
     loop = GLib.MainLoop()
     busname = 'se.recompile.Mandos'
-    helper = helpers[options.helper](bus, busname)
     if options.helper in helpers:
+        helper_module_name, helper_class_name = helpers[options.helper]
+        helper_module = __import__(helper_module_name)
+        helper = getattr(helper_module, helper_class_name)(bus, busname)
         MandosHelper(loop, bus, busname, helper)
         try:
             loop.run()

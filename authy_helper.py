@@ -18,12 +18,18 @@
 #
 
 from threading import activeCount, current_thread, Thread
-from polling import poll, TimeoutException
+try:
+    from polling import poll, TimeoutException
+except ImportError as e:
+    raise SystemExit('Please install python3-pip and run "pip3 install polling" first!')
 from time import sleep
 
 from settings import *
 
-from authy.api import AuthyApiClient
+try:
+    from authy.api import AuthyApiClient
+except ImportError as e:
+    raise SystemExit('Please install python3-pip and run "pip3 install authy" first!')
 
 import logging
 logger = logging.getLogger()
