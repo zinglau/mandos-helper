@@ -7,6 +7,9 @@ MANDOS_SERVER_NAME = ""
 # Whether denied client should also be disabled to avoid further notifications
 DISABLE_IF_DENIED = False
 
+# Whether client enable/disable changes should be managed, with option to reverse
+MANAGE_ENABLE_DISABLE = True
+
 ### BEGIN Authy helper settings
 
 # In Twillo console, navigate to the Authy application and locate the following
