@@ -8,19 +8,30 @@ Helper scripts that enable remote processing (e.g. on mobile phone) of [luks](ht
 - For Telegram bot helper: a [Telegram](https://www.telegram.org/) account and a registered bot.
 
 ### Usage
-1. Download and extract the files.
-2. Modify settings.example.py with relevant settings and save as **settings.py**.
-3. To run manually for testing or debugging purpose, just run **mandos-helper**.
-4. To run as a systemd service, modify `ExecStart` in **mandos-helper.service** with correct file location and command line arguments, and then:
-~~~~
-cp mandos-helper.service /etc/systemd/system/
-systemctl enable mandos-helper
-systemctl start mandos-helper
-~~~~
+1. Clone the git repository, or download and extract the files.
+2. Go into the folder and create a virtualenv:
+    ```
+    python3 -m venv env
+    source env/bin/activate
+    ```
+3. Run `pip3  install -r requirements/authy.txt` or `pip3  install -r requirements/tg.txt` in the folder to install dependencies for respective helper.
+4. Modify settings.example.py with relevant settings and save as **settings.py**.
+5. To run manually for testing or debugging purpose, just run **mandos-helper**.
+6. To run as a systemd service, modify `ExecStart` in **mandos-helper.service** with correct file location and command line arguments, and then:
+    ```
+    cp mandos-helper.service /etc/systemd/system/
+    systemctl enable mandos-helper
+    systemctl start mandos-helper
+    ```
 
 ***
 
-#### <a href="demo/authy.gif" target="_blank">Click</a> to watch a demo of approving mandos client through [Authy OneTouch](https://authy.com/blog/authy-onetouch-modern-authentication-for-any-application/) authentication
+#### Demo of approving mandos client through [Authy OneTouch](https://authy.com/blog/authy-onetouch-modern-authentication-for-any-application/) authentication
+
+<img src="demo/authy.gif" alt="Demo of authy helper" width="100%"/>
 
 
-#### <a href="demo/tg.gif" target="_blank">Click</a> to watch a demo of approving mandos client through [Telegram bot](https://core.telegram.org/bots)
+
+#### Demo of approving mandos client through [Telegram bot](https://core.telegram.org/bots)
+
+<img src="demo/tg.gif" alt="Demo of telegram bot helper" width="100%"/>
