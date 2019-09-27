@@ -3,7 +3,7 @@ Helper scripts that enable remote processing (e.g. on mobile phone) of [luks](ht
 
 ### Prerequisites
 - A working installation of Mandos server: Patching of **mandos** script (usually located at /usr/sbin/) with **mandos_report_ip.diff** is required if IP reporting is needed. The helper needs to be installed on the same machine as Mandos server.
-- Python3
+- Python3 and python3-dbus
 - For Authy helper: a [Twillo](https://www.twilio.com) account with a registered authy application.
 - For Telegram bot helper: a [Telegram](https://www.telegram.org/) account and a registered bot.
 
@@ -11,7 +11,7 @@ Helper scripts that enable remote processing (e.g. on mobile phone) of [luks](ht
 1. Clone the git repository, or download and extract the files.
 2. Go into the folder and create a virtualenv:
     ```
-    python3 -m venv env
+    python3 -m venv --system-site-packages env
     source env/bin/activate
     ```
 3. Run `pip3  install -r requirements/authy.txt` or `pip3  install -r requirements/tg.txt` in the folder to install dependencies for respective helper.

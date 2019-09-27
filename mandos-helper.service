@@ -5,7 +5,7 @@ Requisite=mandos.service
 
 [Service]
 # Modify this with correct file location and necessary command line arguments
-ExecStart=/opt/mandos-helper/mandos-helper
+ExecStart=/opt/mandos-helper/env/bin/python /opt/mandos-helper/mandos-helper --helper authy
 Restart=always
 
 [Install]
