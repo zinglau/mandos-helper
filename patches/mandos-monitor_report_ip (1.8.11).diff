@@ -4,16 +4,16 @@
          log.info("Client %s received its secret",
                   self.properties["Name"])
  
--    def need_approval(self, timeout, default, address):
-+    def need_approval(self, timeout, default):
+-    def need_approval(self, timeout, default):
++    def need_approval(self, timeout, default, address):
          if not default:
--            message = "Client %s from %s vneeds approval within %f seconds"
-+            message = "Client %s needs approval within %f seconds"
+-            message = "Client %s needs approval within %f seconds"
++            message = "Client %s from %s needs approval within %f seconds"
          else:
--            message = "Client %s from %s will get its secret in %f seconds"
--        log.info(message, self.properties["Name"], address, timeout/1000)
-+            message = "Client %s will get its secret in %f seconds"
-+        log.info(message, self.properties["Name"], timeout/1000)
+-            message = "Client %s will get its secret in %f seconds"
+-        log.info(message, self.properties["Name"], timeout/1000)
++            message = "Client %s from %s will get its secret in %f seconds"
++        log.info(message, self.properties["Name"], address, timeout/1000)
  
      def rejected(self, reason):
          log.info("Client %s was rejected; reason: %s",
