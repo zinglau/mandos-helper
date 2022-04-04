@@ -24,7 +24,7 @@ from settings import *
 
 try:
     from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-    from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, BaseFilter
+    from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, MessageFilter
 except ImportError as e:
     raise SystemExit('Please install python3-pip and run "pip3 install python-telegram-bot" first!')
 
@@ -32,7 +32,7 @@ import logging
 logger = logging.getLogger()
 
 
-class FilterUsers(BaseFilter):
+class FilterUsers(MessageFilter):
     def filter(self, message):
         return message.from_user['id'] != TG_USER_ID
 
